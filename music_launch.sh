@@ -15,7 +15,7 @@ choix=$(zenity --list --radiolist \
                --column="" \
                --column="Playlist" \
                TRUE $reprendre $pl)
-echo $choix
+
 if [ $? = 0 ]
 then
     if [ $choix = $reprendre ]
