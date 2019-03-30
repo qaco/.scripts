@@ -9,7 +9,8 @@ reprendre=">>"
 
 pl=$(ls $pl_path | grep $pl_ext | sed -e 's/^/FALSE /' | sort)
 
-choix=$(zenity --list --radiolist \
+choix=$(zenity --window-icon=question \
+               --list --radiolist \
                --height=400 \
                --title="Choix de la playlist" \
                --column="" \
@@ -23,8 +24,8 @@ then
         mocp -U
     else
         mocp -s
-        choix="$pl_path$choix"
         mocp -c
+        choix="$pl_path$choix"
         mocp -a $choix
         mocp -p
     fi   
