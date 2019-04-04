@@ -6,7 +6,7 @@ then
     mocp -S
 fi
 
-path="/home/hugo/.playlists.d/"
+path="$HOME/.playlists.d/"
 backup="$path.playlists"
 ext=".m3u"
 lists=$(ls $path | grep $ext | sort)
