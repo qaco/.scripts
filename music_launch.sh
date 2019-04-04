@@ -1,32 +1,63 @@
 #!/bin/bash
 
-# Assuming moc server is already running
-# If not, do mocp -S
+# Launch MOC if not running
+if [ $(ps -ef | grep -v grep | grep -cw mocp) -eq 0 ]
+then
+    mocp -S
+fi
 
-pl_path=$1
-pl_ext=".m3u"
-reprendre=">>"
+path="/home/hugo/.playlists.d/"
+backup="$path.playlists"
+ext=".m3u"
+lists=$(ls $path | grep $ext | sort)
 
-pl=$(ls $pl_path | grep $pl_ext | sed -e 's/^/FALSE /' | sort)
+##################################
+# Checking the available choices #
+##################################
 
-choix=$(zenity --window-icon=question \
-               --list --radiolist \
-               --height=400 \
-               --title="Choix de la playlist" \
-               --column="" \
-               --column="Playlist" \
-               TRUE $reprendre $pl)
+if [ -f "$backup" ]
+   
+   # I have a backup file : I fetch previously selected playlists and
+   # select them today.
+then
+    for former in $(cat $backup)
+    do
+	lists=$(echo "$lists" | sed -e "s/^$former/TRUE $former/")
+    done
+    lists=$(echo "$lists" \ | sed -e '/^TRUE/! s/^/FALSE /')
+    
+    # I have no backup file : I select the first playlist I see.
+else
+    lists=$(echo "$lists" \ | sed -e '1 s/^/TRUE /' | sed -e '2,$s/^/FALSE /')
+fi
+
+#######################
+# Let the user choose #
+#######################
+
+choices=$(zenity \
+	      --window-icon=question \
+              --list --checklist \
+              --height=400 \
+              --title="Choix de la playlist" \
+              --column="" \
+              --column="Playlist" \
+	      $lists)
+
+######################
+# Handle his choices #
+######################
 
 if [ $? = 0 ]
 then
-    if [ $choix = $reprendre ]
-    then
-        mocp -U
-    else
-        mocp -s
-        mocp -c
-        choix="$pl_path$choix"
-        mocp -a $choix
-        mocp -p
-    fi   
+    choices=$(echo $choices | tr "|" "\n")
+    echo "$choices" > $backup # Backup the selection
+    mocp -s # stop currently playing music
+    mocp -c # clear current playlist
+    for choice in $choices
+    do
+	selection="$path$choice"
+	mocp -a $selection # add each playlist
+    done
+    mocp -p # play
 fi
