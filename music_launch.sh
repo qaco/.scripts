@@ -12,20 +12,24 @@ ext=".m3u"
 lists=$(ls $path | grep $ext | sort)
 
 ##################################
-# Checking the available choices #
+# Check the available choices #
 ##################################
 
-if [ -f "$backup" ]
+# !!! Doesn't work with many preselected
+
+formers=$(comm -12 --nocheck-order <(echo "$lists") <(cat "$backup"))
+
+if [ -f "$backup" ] && [ $(echo $"formers" | wc -l) -gt 0 ]
    
    # I have a backup file : I fetch previously selected playlists and
    # select them today.
 then
-    for former in $(cat $backup)
+    # Mark previously selected playlists
+    for former in "$formers"
     do
 	lists=$(echo "$lists" | sed -e "s/^$former/TRUE $former/")
     done
     lists=$(echo "$lists" \ | sed -e '/^TRUE/! s/^/FALSE /')
-    
     # I have no backup file : I select the first playlist I see.
 else
     lists=$(echo "$lists" \ | sed -e '1 s/^/TRUE /' | sed -e '2,$s/^/FALSE /')
