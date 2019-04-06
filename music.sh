@@ -60,16 +60,14 @@ my_launcher () {
     # Let the user choose #
     #######################
     local winheight=300
-    local choices
-    
-    choices=$(zenity \
-		  --window-icon=question \
-		  --list --checklist \
-		  --height="$winheight" \
-		  --title="Choix de la playlist" \
-		  --column="" \
-		  --column="Playlist" \
-		  $lists)
+    local choices=$(zenity \
+			--window-icon=question \
+			--list --checklist \
+			--height="$winheight" \
+			--title="Choix de la playlist" \
+			--column="" \
+			--column="Playlist" \
+			$lists)
 
     ######################
     # Handle his choices #
