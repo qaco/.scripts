@@ -1,38 +1,37 @@
 #!/bin/bash
 
-# Launch MOC if not running
-if [ $(ps -ef | grep -v grep | grep -cw mocp) -eq 0 ]
-then
-    mocp -S
-fi
-
 path="$HOME/.playlists.d/"
 backup="$path.playlists"
 ext=".m3u"
-lists=$(ls $path | grep $ext | sort)
+
+#############################
+# Launch MOC if not running #
+#############################
+
+if [ $(ps -ef | grep -v grep | grep -cw mocp) -eq 0 ];then
+    mocp -S
+fi
 
 ##################################
 # Check the available choices #
 ##################################
 
-# !!! Doesn't work with many preselected
-
+lists=$(ls $path | grep $ext | sort)
 formers=$(comm -12 --nocheck-order <(echo "$lists") <(cat "$backup"))
 
-if [ -f "$backup" ] && [ $(echo $"formers" | wc -l) -gt 0 ]
-   
-   # I have a backup file : I fetch previously selected playlists and
-   # select them today.
-then
-    # Mark previously selected playlists
-    for former in "$formers"
-    do
-	lists=$(echo "$lists" | sed -e "s/^$former/TRUE $former/")
-    done
-    lists=$(echo "$lists" \ | sed -e '/^TRUE/! s/^/FALSE /')
+# I have a backup file : I fetch previously selected playlists and
+# select them today.
+if [ $(echo $"formers" | wc -l) -gt 0 ];then
+    # Mark TRUE previously selected playlists
+    while read -r former;do
+	lists=$(echo "$lists" | sed "s/^$former/TRUE $former/")
+    done <<< "$formers"
+    # Mark FALSE the others playlists
+    lists=$(echo "$lists" \ | sed '/^TRUE/! s/^/FALSE /')
+    
     # I have no backup file : I select the first playlist I see.
 else
-    lists=$(echo "$lists" \ | sed -e '1 s/^/TRUE /' | sed -e '2,$s/^/FALSE /')
+    lists=$(echo "$lists" \ | sed -e '1 s/^/TRUE /' -e '2,$s/^/FALSE /')
 fi
 
 #######################
@@ -52,16 +51,27 @@ choices=$(zenity \
 # Handle his choices #
 ######################
 
-if [ $? = 0 ]
-then
-    choices=$(echo $choices | tr "|" "\n")
-    echo "$choices" > $backup # Backup the selection
+if [ $? = 0 ];then
+    
     mocp -s # stop currently playing music
     mocp -c # clear current playlist
-    for choice in $choices
-    do
-	selection="$path$choice"
-	mocp -a $selection # add each playlist
-    done
+
+    # Add each playlist displaying progress bar
+    percent=0
+    choices=$(echo $choices | tr "|" "\n")
+    delta=$(( 100 / $(echo "$choices" | wc -l) ))
+    echo "$choices" > $backup # Backup the selection
+    (for choice in $choices;do
+	 echo "#Ajout de $choice"
+	 mocp -a "$path$choice" # add each playlist
+	 percent=$(( $percent + $delta ))
+	 echo "$percent"
+     done) |
+	zenity --progress \
+	       --title="Ajout des playlists" \
+	       --text="Ajout des playlists" \
+	       --percentage=$percent \
+	       --auto-close
+    
     mocp -p # play
 fi
