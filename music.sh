@@ -1,28 +1,38 @@
 #!/bin/bash
 
-readonly launch="-l"
-readonly toggle="-p"
-readonly skback="-b"
-readonly sknext="-f"
-readonly mysong="-s"
-readonly helpme="-h"
-readonly player="moc"
-readonly viewer="zenity"
+readonly LAUNCH="-l"
+readonly TOGGLE="-p"
+readonly SKBACK="-b"
+readonly SKNEXT="-f"
+readonly MYSONG="-s"
+readonly HELPME="-h"
+
+readonly VIEWER="zenity"
+readonly PLAYER="mocp"
+readonly CMD_LAUNCH="$PLAYER -S"
+readonly CMD_STOP="$PLAYER -s"
+readonly CMD_CLEAR="$PLAYER -c"
+readonly CMD_ADD="$PLAYER -a"
+readonly CMD_PLAY="$PLAYER -p"
+readonly CMD_PREV="$PLAYER -r"
+readonly CMD_NEXT="$PLAYER -f"
+readonly CMD_TOGGLE="$PLAYER -G"
+readonly CMD_INFO="$PLAYER -i"
 
 wrong_input () {
     local help=$(printf \
 		     '%s\n\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n\n%s\n%s\n%s\n' \
 		     "Usage: $0 [OPTIONS]" \
 		     "Options:" \
-		     "  $launch    Launch playlists" \
-		     "  $toggle    Toggle play/pause" \
-		     "  $skback    Skip backward" \
-		     "  $sknext    Skip forward" \
-		     "  $mysong    Current song" \
-		     "  $helpme    Help" \
+		     "  $LAUNCH    Launch playlists" \
+		     "  $TOGGLE    Toggle play/pause" \
+		     "  $SKBACK    Skip backward" \
+		     "  $SKNEXT    Skip forward" \
+		     "  $MYSONG    Current song" \
+		     "  $HELPME    Help" \
 		     "Dependencies:" \
-		     "  $player" \
-		     "  $viewer")
+		     "  $PLAYER" \
+		     "  $VIEWER")
     
     echo "$help" 2>&1
     exit 0
@@ -39,7 +49,7 @@ my_launcher () {
     #############################
 
     if [ $(ps -ef | grep -v grep | grep -cw mocp) -eq 0 ];then
-	mocp -S
+	$CMD_LAUNCH
     fi
 
     ##################################
@@ -94,8 +104,8 @@ my_launcher () {
     local percent=0
     local delta
     
-    mocp -s # stop currently playing music
-    mocp -c # clear current playlist
+    $CMD_STOP
+    $CMD_CLEAR # clear current playlist
 
     # Add each playlist displaying progress bar
     choices=$(echo $choices | tr "|" "\n")
@@ -106,7 +116,7 @@ my_launcher () {
     fi
     (for choice in $choices;do
 	 echo "#Ajout de $choice"
-	 mocp -a "$path$choice" # add each playlist
+	 $CMD_ADD "$path$choice" # add each playlist
 	 percent=$(( $percent + $delta ))
 	 echo "$percent"
      done) |
@@ -116,11 +126,11 @@ my_launcher () {
 	       --percentage=$percent \
 	       --auto-close
     
-    mocp -p # play
+    $CMD_PLAY
 }
 
 current_song () {
-    local song=$(mocp -i)
+    local song=$($CMD_INFO)
     
     if [ $(echo "$song" | wc -l) -le 1 ];then
 	zenity --error --text="Pas de chanson en cours de lecture !"
@@ -131,25 +141,25 @@ current_song () {
     }
 
 if  [ "$#" -ne 1 ] \
-	|| [ $(command -v "$viewer" | wc -l) -eq 0 ] \
-	|| [ $(command -v "$player" | wc -l) -eq 0 ];then
+	|| [ $(command -v "$VIEWER" | wc -l) -eq 0 ] \
+	|| [ $(command -v "$PLAYER" | wc -l) -eq 0 ];then
     wrong_input
 fi
 
 case "$1" in
-    "$launch")
+    "$LAUNCH")
 	my_launcher
 	;;
-    "$skback")
-	mocp -r
+    "$SKBACK")
+	$CMD_PREV
 	;;
-    "$sknext")
-	mocp -f
+    "$SKNEXT")
+	$CMD_NEXT
 	;;
-    "$toggle")
-	mocp -G
+    "$TOGGLE")
+	$CMD_TOGGLE
 	;;
-    "$mysong")
+    "$MYSONG")
 	current_song
 	;;
     *)
