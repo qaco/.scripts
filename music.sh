@@ -24,12 +24,6 @@ my_launcher () {
     local path="$HOME/.playlists.d/"
     local backup="$path.playlists"
     local ext=".m3u"
-    local winheight=300
-    local lists
-    local formers
-    local choices
-    local percent
-    local delta
 
     #############################
     # Launch MOC if not running #
@@ -42,9 +36,10 @@ my_launcher () {
     ##################################
     # Check the available choices #
     ##################################
-
-    lists=$(ls $path | grep $ext | sort)
-    formers=$(comm -12 --nocheck-order <(echo "$lists") <(cat "$backup"))
+    local lists=$(ls $path | grep $ext | sort)
+    local formers=$(comm -12 --nocheck-order \
+			 <(echo "$lists") \
+			 <(cat "$backup"))
 
     # I have a backup file : I fetch previously selected playlists and
     # select them today.
@@ -64,7 +59,9 @@ my_launcher () {
     #######################
     # Let the user choose #
     #######################
-
+    local winheight=300
+    local choices
+    
     choices=$(zenity \
 		  --window-icon=question \
 		  --list --checklist \
@@ -77,7 +74,9 @@ my_launcher () {
     ######################
     # Handle his choices #
     ######################
-
+    local percent
+    local delta
+    
     if [[ $(echo "$choices" | wc -w) -ne 0 ]];then
 	mocp -s # stop currently playing music
 	mocp -c # clear current playlist
