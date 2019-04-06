@@ -72,15 +72,15 @@ my_launcher () {
     ######################
     # Handle his choices #
     ######################
-    local percent
-    local delta
     
     if [[ $(echo "$choices" | wc -w) -ne 0 ]];then
+	local percent=0
+	local delta
+	
 	mocp -s # stop currently playing music
 	mocp -c # clear current playlist
 
 	# Add each playlist displaying progress bar
-	percent=0
 	choices=$(echo $choices | tr "|" "\n")
 	delta=$(( 100 / $(echo "$choices" | wc -l) ))
 	echo "$choices" > $backup # Backup the selection
@@ -101,12 +101,12 @@ my_launcher () {
 }
 
 current_song () {
-    local song
+    local song=$(mocp -i)
     
-    if [ $(mocp -i | wc -l) -le 1 ];then
+    if [ $(echo "$song" | wc -l) -le 1 ];then
 	zenity --error --text="Pas de chanson en cours de lecture !"
     else
-	song=$(mocp -i | sed -n '4,6 p' | cut --complement -d ' ' -f 1)
+	song=$(echo "$song" | sed -n '4,6 p' | cut --complement -d ' ' -f 1)
 	zenity --info --title="Lecture" --text="$song"
     fi
     }
