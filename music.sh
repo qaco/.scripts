@@ -5,16 +5,23 @@ readonly toggle="-p"
 readonly skback="-b"
 readonly sknext="-f"
 readonly mysong="-s"
+readonly helpme="-h"
+readonly player="moc"
+readonly viewer="zenity"
 
 wrong_input () {
-    local help=$(printf '%s\n\n%s\n%s\n%s\n%s\n%s\n%s\n' \
+    local help=$(printf '%s\n\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n\n%s\n%s\n%s\n' \
 			"Usage: $0 [OPTIONS]" \
 			"Options:" \
 			"  $launch    Launch playlists" \
 			"  $toggle    Toggle play/pause" \
 			"  $skback    Skip backward" \
 			"  $sknext    Skip forward" \
-			"  $mysong    Current song")
+			"  $mysong    Current song" \
+			"  $helpme    Help" \
+			"Dependencies:" \
+			"  $player" \
+			"  $viewer")
     
     echo "$help" 2>&1
     exit 0
@@ -38,9 +45,9 @@ my_launcher () {
     # Check the available choices #
     ##################################
     local lists=$(ls $path | grep $ext | sort)
-    local formers=$(comm -12 --nocheck-order \
-			 <(echo "$lists") \
-			 <(cat "$backup"))
+    local -r formers=$(comm -12 --nocheck-order \
+			    <(echo "$lists") \
+			    <(cat "$backup"))
 
     # I have a backup file : I fetch previously selected playlists and
     # select them today.
@@ -83,7 +90,10 @@ my_launcher () {
 	# Add each playlist displaying progress bar
 	choices=$(echo $choices | tr "|" "\n")
 	delta=$(( 100 / $(echo "$choices" | wc -l) ))
-	echo "$choices" > $backup # Backup the selection
+
+	if [ "$choices" != "$formers" ];then
+	    echo "$choices" > $backup # Backup the selection
+	fi
 	(for choice in $choices;do
 	     echo "#Ajout de $choice"
 	     mocp -a "$path$choice" # add each playlist
@@ -111,9 +121,12 @@ current_song () {
     fi
     }
 
-if [ "$#" -ne 1 ];then
+if  [ "$#" -ne 1 ] \
+	|| [ $(command -v "$viewer" | wc -l) -eq 0 ] \
+	|| [ $(command -v "$player" | wc -l) -eq 0 ];then
     wrong_input
 fi
+    
 
 case "$1" in
     "$launch")
