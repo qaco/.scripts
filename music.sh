@@ -24,6 +24,7 @@ my_launcher () {
     local path="$HOME/.playlists.d/"
     local backup="$path.playlists"
     local ext=".m3u"
+    local winheight=300
 
     #############################
     # Launch MOC if not running #
@@ -59,7 +60,6 @@ my_launcher () {
     #######################
     # Let the user choose #
     #######################
-    local winheight=300
     local choices=$(zenity \
 			--window-icon=question \
 			--list --checklist \
