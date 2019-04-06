@@ -24,6 +24,7 @@ my_launcher () {
     local path="$HOME/.playlists.d/"
     local backup="$path.playlists"
     local ext=".m3u"
+    local winheight=300
     local lists
     local formers
     local choices
@@ -67,7 +68,7 @@ my_launcher () {
     choices=$(zenity \
 		  --window-icon=question \
 		  --list --checklist \
-		  --height=400 \
+		  --height="$winheight" \
 		  --title="Choix de la playlist" \
 		  --column="" \
 		  --column="Playlist" \
