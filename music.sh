@@ -1,30 +1,29 @@
 #!/bin/bash
 
-path="$HOME/.playlists.d/"
-backup="$path.playlists"
-ext=".m3u"
-
 launch="-l"
 toggle="-p"
 skback="-b"
 sknext="-f"
 mysong="-s"
 
-help=$(printf '%s\n\n%s\n%s\n%s\n%s\n%s\n%s\n' \
-	      "Usage: $0 [OPTIONS]" \
-	      "Options:" \
-	      "  $launch    Launch playlists" \
-	      "  $toggle    Toggle play/pause" \
-	      "  $skback    Skip backward" \
-	      "  $sknext    Skip forward" \
-	      "  $mysong    Current song")
-
 wrong_input () {
+    local help=$(printf '%s\n\n%s\n%s\n%s\n%s\n%s\n%s\n' \
+			"Usage: $0 [OPTIONS]" \
+			"Options:" \
+			"  $launch    Launch playlists" \
+			"  $toggle    Toggle play/pause" \
+			"  $skback    Skip backward" \
+			"  $sknext    Skip forward" \
+			"  $mysong    Current song")
+    
     echo "$help" 2>&1
     exit 0
 }
 
 my_launcher () {
+    local path="$HOME/.playlists.d/"
+    local backup="$path.playlists"
+    local ext=".m3u"
 
     #############################
     # Launch MOC if not running #
@@ -38,8 +37,10 @@ my_launcher () {
     # Check the available choices #
     ##################################
 
-    lists=$(ls $path | grep $ext | sort)
-    formers=$(comm -12 --nocheck-order <(echo "$lists") <(cat "$backup"))
+    local lists=$(ls $path | grep $ext | sort)
+    local formers=$(comm -12 --nocheck-order \
+			 <(echo "$lists") \
+			 <(cat "$backup"))
 
     # I have a backup file : I fetch previously selected playlists and
     # select them today.
@@ -60,28 +61,27 @@ my_launcher () {
     # Let the user choose #
     #######################
 
-    choices=$(zenity \
-		  --window-icon=question \
-		  --list --checklist \
-		  --height=400 \
-		  --title="Choix de la playlist" \
-		  --column="" \
-		  --column="Playlist" \
-		  $lists)
+    local choices=$(zenity \
+			--window-icon=question \
+			--list --checklist \
+			--height=400 \
+			--title="Choix de la playlist" \
+			--column="" \
+			--column="Playlist" \
+			$lists)
 
     ######################
     # Handle his choices #
     ######################
 
-    if [ $? = 0 ];then
-	
+    if [[ $(echo "$choices" | wc -w) -ne 0 ]];then
 	mocp -s # stop currently playing music
 	mocp -c # clear current playlist
 
 	# Add each playlist displaying progress bar
-	percent=0
+	local percent=0
 	choices=$(echo $choices | tr "|" "\n")
-	delta=$(( 100 / $(echo "$choices" | wc -l) ))
+	local delta=$(( 100 / $(echo "$choices" | wc -l) ))
 	echo "$choices" > $backup # Backup the selection
 	(for choice in $choices;do
 	     echo "#Ajout de $choice"
@@ -98,6 +98,15 @@ my_launcher () {
 	mocp -p # play
     fi
 }
+
+current_song () {
+    if [ $(mocp -i | wc -l) -le 1 ];then
+	zenity --error --text="Pas de chanson en cours de lecture !"
+    else
+	local song=$(mocp -i | sed -n '4,6 p' | cut --complement -d ' ' -f 1)
+	zenity --info --title="Lecture" --text="$song"
+    fi
+    }
 
 if [ "$#" -ne 1 ];then
     wrong_input
@@ -122,12 +131,7 @@ case "$1" in
 	;;
     
     "$mysong")
-	if [ $(mocp -i | wc -l) -le 1 ];then
-	    zenity --error --text="Pas de chanson en cours de lecture !"
-	else
-	    song=$(mocp -i | sed -n '4,6 p' | cut --complement -d ' ' -f 1)
-	    zenity --info --title="Lecture" --text="$song"
-	fi
+	current_song
 	;;
     *)
 	wrong_input
