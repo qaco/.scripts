@@ -73,7 +73,7 @@ my_launcher () {
     # Handle his choices #
     ######################
     
-    if [[ $(echo "$choices" | wc -w) -ne 0 ]];then
+    if [ $(echo "$choices" | wc -w) -ne 0 ];then
 	local percent=0
 	local delta
 	
