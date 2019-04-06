@@ -2,6 +2,7 @@
 
 readonly LAUNCH="-l"
 readonly TOGGLE="-p"
+readonly REPEAT="-r"
 readonly SKBACK="-b"
 readonly SKNEXT="-f"
 readonly MYSONG="-s"
@@ -17,7 +18,9 @@ readonly CMD_PLAY="$PLAYER -p"
 readonly CMD_PREV="$PLAYER -r"
 readonly CMD_NEXT="$PLAYER -f"
 readonly CMD_TOGGLE="$PLAYER -G"
-readonly CMD_INFO="$PLAYER -i"
+readonly CMD_TIME="$PLAYER -Q %cs"
+readonly CMD_REPEAT="$PLAYER -k -$($CMD_TIME)"
+readonly CMD_INFO="$PLAYER -Q %song\\n%artist\\n%album"
 
 wrong_input () {
     local help=$(printf \
@@ -39,41 +42,45 @@ wrong_input () {
 }
 
 my_launcher () {
-    local -r path="$HOME/.playlists.d/"
-    local -r backup="$path.playlists"
-    local -r ext=".m3u"
-    local -r winheight=300
+    local -r PATH_D="$HOME/.playlists.d/"
+    local -r BACKUP="$PATH_D.history"
+    local -r EXT=".m3u"
+    local -r WIN_HEIGHT=300
 
-    #############################
-    # Launch MOC if not running #
-    #############################
+    ################################
+    # Launch player if not running #
+    ################################
 
-    if [ $(ps -ef | grep -v grep | grep -cw mocp) -eq 0 ];then
+    if [ $(ps -ef | grep -v grep | grep -cw "$PLAYER") -eq 0 ];then
 	$CMD_LAUNCH
     fi
 
-    ##################################
-    # Check the available choices #
-    ##################################
-    local lists=$(ls $path | grep $ext | sort)
-    local -r formers=$(comm -12 --nocheck-order \
-			    <(echo "$lists") \
-			    <(cat "$backup"))
+    ################################
+    # Read the playlists directory #
+    ################################
+    local lists=$(ls $PATH_D | grep $EXT | sort)
 
     if [ $(echo $lists | wc -l) -eq 0 ] ; then
-	local -r message="Aucun fichier $ext dans $path !"
+	local -r message="Aucun fichier $EXT dans $PATH_D !"
 	zenity --error \
 	       --text="$message"
 	exit 0
     fi
+
+    ##########################
+    # Preselect some choices #
+    ##########################
+    local -r FORMERS=$(comm -12 --nocheck-order \
+			    <(echo "$lists") \
+			    <(cat "$BACKUP"))
     
     # I have a backup file : I fetch previously selected playlists and
     # select them today.
-    if [ $(echo $"formers" | wc -l) -gt 0 ];then
+    if [ $(echo $"FORMERS" | wc -l) -gt 0 ];then
 	# Mark TRUE previously selected playlists
 	while read -r former;do
 	    lists=$(echo "$lists" | sed "s/^$former/TRUE $former/")
-	done <<< "$formers"
+	done <<< "$FORMERS"
 	# Mark FALSE the others playlists
 	lists=$(echo "$lists" \ | sed '/^TRUE/! s/^/FALSE /')
 	
@@ -88,36 +95,38 @@ my_launcher () {
     local choices=$(zenity \
 			--window-icon=question \
 			--list --checklist \
-			--height="$winheight" \
+			--height="$WIN_HEIGHT" \
 			--title="Choix de la playlist" \
 			--column="" \
 			--column="Playlist" \
 			$lists)
 
-    ######################
-    # Handle his choices #
-    ######################
+    ###############################
+    # Smooth & backup his choices #
+    ###############################
+    
     if [ $(echo "$choices" | wc -w) -eq 0 ];then
 	exit 1
     fi
-
+    choices=$(echo $choices | tr "|" "\n")
+    if [ "$choices" != "$FORMERS" ];then
+	echo "$choices" > $BACKUP
+    fi
+    
+    ######################
+    # Apply his choices  #
+    ######################
+    local -r DELTA=$(( 100 / $(echo "$choices" | wc -l) ))
     local percent=0
-    local delta
     
     $CMD_STOP
     $CMD_CLEAR # clear current playlist
 
     # Add each playlist displaying progress bar
-    choices=$(echo $choices | tr "|" "\n")
-    delta=$(( 100 / $(echo "$choices" | wc -l) ))
-
-    if [ "$choices" != "$formers" ];then
-	echo "$choices" > $backup # Backup the selection
-    fi
     (for choice in $choices;do
 	 echo "#Ajout de $choice"
-	 $CMD_ADD "$path$choice" # add each playlist
-	 percent=$(( $percent + $delta ))
+	 $CMD_ADD "$PATH_D$choice" # add each playlist
+	 percent=$(( $percent + $DELTA ))
 	 echo "$percent"
      done) |
 	zenity --progress \
@@ -129,13 +138,23 @@ my_launcher () {
     $CMD_PLAY
 }
 
+previous_song () {
+    local -r DELTA=1
+    local -r MYTIME=$($CMD_TIME)
+
+    if [ $(echo "$MYTIME") -gt "$DELTA" ];then
+	$CMD_REPEAT
+    else
+	$CMD_PREV
+    fi
+}
+
 current_song () {
     local song=$($CMD_INFO)
     
-    if [ $(echo "$song" | wc -l) -le 1 ];then
+    if [ $(echo "$song" | wc -w) -eq 0 ];then
 	zenity --error --text="Pas de chanson en cours de lecture !"
     else
-	song=$(echo "$song" | sed -n '4,6 p' | cut --complement -d ' ' -f 1)
 	zenity --info --title="Lecture" --text="$song"
     fi
     }
@@ -150,14 +169,14 @@ case "$1" in
     "$LAUNCH")
 	my_launcher
 	;;
+    "$TOGGLE")
+	$CMD_TOGGLE
+	;;
     "$SKBACK")
-	$CMD_PREV
+	previous_song
 	;;
     "$SKNEXT")
 	$CMD_NEXT
-	;;
-    "$TOGGLE")
-	$CMD_TOGGLE
 	;;
     "$MYSONG")
 	current_song
