@@ -10,28 +10,29 @@ readonly player="moc"
 readonly viewer="zenity"
 
 wrong_input () {
-    local help=$(printf '%s\n\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n\n%s\n%s\n%s\n' \
-			"Usage: $0 [OPTIONS]" \
-			"Options:" \
-			"  $launch    Launch playlists" \
-			"  $toggle    Toggle play/pause" \
-			"  $skback    Skip backward" \
-			"  $sknext    Skip forward" \
-			"  $mysong    Current song" \
-			"  $helpme    Help" \
-			"Dependencies:" \
-			"  $player" \
-			"  $viewer")
+    local help=$(printf \
+		     '%s\n\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n\n%s\n%s\n%s\n' \
+		     "Usage: $0 [OPTIONS]" \
+		     "Options:" \
+		     "  $launch    Launch playlists" \
+		     "  $toggle    Toggle play/pause" \
+		     "  $skback    Skip backward" \
+		     "  $sknext    Skip forward" \
+		     "  $mysong    Current song" \
+		     "  $helpme    Help" \
+		     "Dependencies:" \
+		     "  $player" \
+		     "  $viewer")
     
     echo "$help" 2>&1
     exit 0
 }
 
 my_launcher () {
-    local path="$HOME/.playlists.d/"
-    local backup="$path.playlists"
-    local ext=".m3u"
-    local winheight=300
+    local -r path="$HOME/.playlists.d/"
+    local -r backup="$path.playlists"
+    local -r ext=".m3u"
+    local -r winheight=300
 
     #############################
     # Launch MOC if not running #
@@ -49,6 +50,13 @@ my_launcher () {
 			    <(echo "$lists") \
 			    <(cat "$backup"))
 
+    if [ $(echo $lists | wc -l) -eq 0 ] ; then
+	local -r message="Aucun fichier $ext dans $path !"
+	zenity --error \
+	       --text="$message"
+	exit 0
+    fi
+    
     # I have a backup file : I fetch previously selected playlists and
     # select them today.
     if [ $(echo $"formers" | wc -l) -gt 0 ];then
@@ -79,35 +87,36 @@ my_launcher () {
     ######################
     # Handle his choices #
     ######################
-    
-    if [ $(echo "$choices" | wc -w) -ne 0 ];then
-	local percent=0
-	local delta
-	
-	mocp -s # stop currently playing music
-	mocp -c # clear current playlist
-
-	# Add each playlist displaying progress bar
-	choices=$(echo $choices | tr "|" "\n")
-	delta=$(( 100 / $(echo "$choices" | wc -l) ))
-
-	if [ "$choices" != "$formers" ];then
-	    echo "$choices" > $backup # Backup the selection
-	fi
-	(for choice in $choices;do
-	     echo "#Ajout de $choice"
-	     mocp -a "$path$choice" # add each playlist
-	     percent=$(( $percent + $delta ))
-	     echo "$percent"
-	 done) |
-	    zenity --progress \
-		   --title="Ajout des playlists" \
-		   --text="Ajout des playlists" \
-		   --percentage=$percent \
-		   --auto-close
-	
-	mocp -p # play
+    if [ $(echo "$choices" | wc -w) -eq 0 ];then
+	exit 1
     fi
+
+    local percent=0
+    local delta
+    
+    mocp -s # stop currently playing music
+    mocp -c # clear current playlist
+
+    # Add each playlist displaying progress bar
+    choices=$(echo $choices | tr "|" "\n")
+    delta=$(( 100 / $(echo "$choices" | wc -l) ))
+
+    if [ "$choices" != "$formers" ];then
+	echo "$choices" > $backup # Backup the selection
+    fi
+    (for choice in $choices;do
+	 echo "#Ajout de $choice"
+	 mocp -a "$path$choice" # add each playlist
+	 percent=$(( $percent + $delta ))
+	 echo "$percent"
+     done) |
+	zenity --progress \
+	       --title="Ajout des playlists" \
+	       --text="Ajout des playlists" \
+	       --percentage=$percent \
+	       --auto-close
+    
+    mocp -p # play
 }
 
 current_song () {
@@ -126,7 +135,6 @@ if  [ "$#" -ne 1 ] \
 	|| [ $(command -v "$player" | wc -l) -eq 0 ];then
     wrong_input
 fi
-    
 
 case "$1" in
     "$launch")
