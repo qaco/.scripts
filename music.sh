@@ -47,19 +47,15 @@ my_launcher () {
     local -r EXT=".m3u"
     local -r WIN_HEIGHT=300
 
-    ################################
-    # Launch player if not running #
-    ################################
-
+    ## Launch the player if not running yet
+    
     if [ $(ps -ef | grep -v grep | grep -cw "$PLAYER") -eq 0 ];then
 	$CMD_LAUNCH
     fi
 
-    ################################
-    # Read the playlists directory #
-    ################################
+    ## Read the playlists directory
+    
     local lists=$(ls $PATH_D | grep $EXT | sort)
-
     if [ $(echo $lists | wc -l) -eq 0 ] ; then
 	local -r message="Aucun fichier $EXT dans $PATH_D !"
 	zenity --error \
@@ -67,31 +63,22 @@ my_launcher () {
 	exit 0
     fi
 
-    ##########################
-    # Preselect some choices #
-    ##########################
+    ## Preselect some choices
+    
     local -r FORMERS=$(comm -12 --nocheck-order \
 			    <(echo "$lists") \
 			    <(cat "$BACKUP"))
-    
-    # I have a backup file : I fetch previously selected playlists and
-    # select them today.
     if [ $(echo $"FORMERS" | wc -l) -gt 0 ];then
-	# Mark TRUE previously selected playlists
 	while read -r former;do
 	    lists=$(echo "$lists" | sed "s/^$former/TRUE $former/")
 	done <<< "$FORMERS"
-	# Mark FALSE the others playlists
 	lists=$(echo "$lists" \ | sed '/^TRUE/! s/^/FALSE /')
-	
-	# I have no backup file : I select the first playlist I see.
     else
 	lists=$(echo "$lists" \ | sed -e '1 s/^/TRUE /' -e '2,$s/^/FALSE /')
     fi
 
-    #######################
-    # Let the user choose #
-    #######################
+    ## Let the user choose
+    
     local choices=$(zenity \
 			--window-icon=question \
 			--list --checklist \
@@ -101,9 +88,7 @@ my_launcher () {
 			--column="Playlist" \
 			$lists)
 
-    ###############################
-    # Smooth & backup his choices #
-    ###############################
+    ## Smooth & backup his choices
     
     if [ $(echo "$choices" | wc -w) -eq 0 ];then
 	exit 1
@@ -113,19 +98,15 @@ my_launcher () {
 	echo "$choices" > $BACKUP
     fi
     
-    ######################
-    # Apply his choices  #
-    ######################
+    ## Apply his choices
+    
     local -r DELTA=$(( 100 / $(echo "$choices" | wc -l) ))
     local percent=0
-    
     $CMD_STOP
-    $CMD_CLEAR # clear current playlist
-
-    # Add each playlist displaying progress bar
+    $CMD_CLEAR
     (for choice in $choices;do
 	 echo "#Ajout de $choice"
-	 $CMD_ADD "$PATH_D$choice" # add each playlist
+	 $CMD_ADD "$PATH_D$choice"
 	 percent=$(( $percent + $DELTA ))
 	 echo "$percent"
      done) |
@@ -139,7 +120,7 @@ my_launcher () {
 }
 
 previous_song () {
-    local -r DELTA=1
+    local -r DELTA=2
     local -r MYTIME=$($CMD_TIME)
 
     if [ $(echo "$MYTIME") -gt "$DELTA" ];then
