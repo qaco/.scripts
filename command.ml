@@ -21,7 +21,8 @@ let lines_of_file path =
     lines
   with
   | Sys_error _ -> []
-            
+
+(* TODO : lire multiline (récursion) *)
 let output_of_command command =
   let cin = Unix.open_process_in command in
   try
@@ -64,3 +65,6 @@ let progressbar_template title =
 
 let info_template text =
   "zenity --info --text=" ^ text
+
+let error_template text =
+  "zenity --error --text=" ^ text

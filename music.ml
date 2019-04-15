@@ -56,57 +56,57 @@ let help() =
               ^ opts in
   prerr_endline usage
 
-let launch() =
+let launch_player () =
+  if program_is_running player then () else ignore (cmd_launch())
+    
+let ls_playlists () =
+  let playlists = ls_dir playlists_d exts in
+  if List.length playlists = 0 then raise Zero_playlists else playlists
 
-  let launch_player () =
-    if program_is_running player then () else ignore (cmd_launch()) in
-                                                     
-  let ls_playlists () =
-    let playlists = ls_dir playlists_d exts in
-    if List.length playlists = 0 then raise Zero_playlists else playlists in
+let playlists_of_history found_playlists =
+  let former_playlists = lines_of_file history in
+  List.filter (fun p -> List.mem p found_playlists) former_playlists
 
-  let playlists_of_history found_playlists =
-    let former_playlists = lines_of_file history in
-    List.filter (fun p -> List.mem p found_playlists) former_playlists in
-
-  let tag_ok filename = true,  filename in
-  let tag_ko filename = false, filename in
-  let untag (t,f) = if t then "TRUE " ^ f else "FALSE " ^ f in
-  
-  let tag_playlists select all = List.(
+let tag_ok filename = true,  filename
+let tag_ko filename = false, filename 
+let untag (t,f) = if t then "TRUE " ^ f else "FALSE " ^ f
+    
+let tag_playlists select all = List.(
     if length select = 0
     then (tag_ok @@ hd all) :: (map tag_ko @@ tl all)
-    else map (fun p -> if mem p select then tag_ok p else tag_ko p) all) in
+    else map (fun p -> if mem p select then tag_ok p else tag_ko p) all)
 
-  let select_playlists choices =
-    let choices = List.map untag choices |> String.concat " " in
-    let command = checklist_template win_height
-                                     "Playlist selection"
-                                     "Playlist"
-                                     choices in
-    output_of_command command |> String.split_on_char '|' in
+let select_playlists choices =
+  let choices = List.map untag choices |> String.concat " " in
+  let command = checklist_template win_height
+                                   "Playlist selection"
+                                   "Playlist"
+                                   choices in
+  output_of_command command |> String.split_on_char '|'
 
-  let add_playlists playlists =
+let add_playlists playlists =
 
-    let delta = 100 / List.length playlists in
-  
-    let rec add_playlists' percent playlists cout = match playlists with
-      | [] -> ()
-      | h :: t -> output_string cout ("#Adding " ^ h ^ "\n") ;
-                  flush cout ;
-                  let _ = cmd_add (playlists_d ^ h) in
-                  let percent = percent + delta in
-                  output_string cout (string_of_int percent ^ "\n") ;
-                  flush cout ;
-                  add_playlists' percent t cout in
+  let delta = 100 / List.length playlists in
+      
+  let rec add_playlists' percent playlists cout = match playlists with
+    | [] -> ()
+    | h :: t -> output_string cout ("#Adding " ^ h ^ "\n") ;
+                flush cout ;
+                let _ = cmd_add (playlists_d ^ h) in
+                let percent = percent + delta in
+                output_string cout (string_of_int percent ^ "\n") ;
+                flush cout ;
+                add_playlists' percent t cout in
 
-    progressbar_template "Processing..."
-    |> input_of_command (add_playlists' 0 playlists) in
+  progressbar_template "Processing..."
+  |> input_of_command (add_playlists' 0 playlists)
 
-  let update_history selection =
-    let selection = String.concat "\n" selection in
-    let file = open_out history in
-    output_string file selection in
+let update_history selection =
+  let selection = String.concat "\n" selection in
+  let file = open_out history in
+  output_string file selection
+                
+let launch() =
                   
   let launch'() =
     let _ = launch_player() in
@@ -122,15 +122,16 @@ let launch() =
   try
     launch'()
   with
-  | Zero_playlists -> ()
+  | Zero_playlists ->
+     ignore @@ Sys.command (error_template "Zero playlists available")
   | Cancel -> ()
 
+(* TODO : Message d'erreur si n'est pas lancé *)
 let info() =
-  let info = output_of_command cmd_info
-             |> String.split_on_char sep_info
-             |> String.concat "\n" in
-  let info = "\"" ^ info ^ "\"" in
-  print_endline info ;
+  let info =  "\""
+              ^ (output_of_command cmd_info
+                 |> String.map (fun c -> if c = sep_info then '\n' else c))
+              ^  "\"" in
   ignore (Sys.command (info_template info))
 
 let back() =
