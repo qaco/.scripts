@@ -4,6 +4,12 @@ import os
 import os.path
 import epub_meta
 
+path_sep = '/'
+if os.name == 'nt':
+    path_sep = '\\'
+
+print('\\')
+
 def is_integer(n):
     try:
         int(n)
