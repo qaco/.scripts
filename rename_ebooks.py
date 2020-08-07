@@ -8,8 +8,6 @@ path_sep = '/'
 if os.name == 'nt':
     path_sep = '\\'
 
-print('\\')
-
 def is_integer(n):
     try:
         int(n)
@@ -18,36 +16,41 @@ def is_integer(n):
     else:
         return True
 
-def handle_epub(loc, name):
-    mypath = loc + '/' + name
-    ext = os.path.splitext(mypath)[1]
-    if ext == ".epub":
-        data = epub_meta.get_epub_metadata(mypath,
-                                           read_cover_image=False,
-                                           read_toc=False)
-        title = data['title']
-        auth = data['authors'][0]
-
-        auth = auth.replace(",", " ")
-        auth = auth.replace("/", " ")
+def get_author(title, auth):
+    auth = auth.replace(",", " ")
+    auth = auth.replace("/", " ")
         
-        auth_split = auth.split()
+    auth_split = auth.split()
         
-        print("Titre : " + title)
-        print ("Nom de l'auteur (choix): ", end='')
-        for idx,item in enumerate(auth_split):
-            if idx == len(auth_split) - 1:
-                print ("ou ", end='')
-            print(item + "[" + str(idx) + "] ", end='')
+    print("Titre : " + title)
+    print ("Nom de l'auteur (choix): ", end='')
+    for idx,item in enumerate(auth_split):
+        if idx == len(auth_split) - 1:
+            print ("ou ", end='')
+        print(item + "[" + str(idx) + "] ", end='')
         print
 
-        real_name = str(len(auth_split))
-        while not(is_integer(real_name) and int(real_name) < len(auth_split)):
-            real_name = input("\nReponse: ")
-        auth = auth_split[int(real_name)]
+    real_name = str(len(auth_split))
+    while not(is_integer(real_name) and int(real_name) < len(auth_split)):
+        real_name = input("\nReponse: ")
+    auth_smooth = auth_split[int(real_name)]
+    return auth_smooth
 
-        mynewpath = loc + '/' + auth + ' ' + title + ext
-        os.rename(mypath,mynewpath)
+def handle_epub(loc, name):
+    mypath = loc + path_sep + name
+    print(mypath)
+    ext = os.path.splitext(mypath)[1]
+    if ext == ".epub":
+        try:
+            data = epub_meta.get_epub_metadata(mypath, read_cover_image=False, read_toc=False)
+            title = data['title']
+            auth = data['authors'][0]
+            auth = get_author(title, auth)
+            mynewpath = loc + path_sep + auth + ' ' + title + ext
+            os.rename(mypath,mynewpath)
+        except KeyError:
+            print(name + " corrompu")
+            print
         
 def handle_dir(mypath):
     for (dirpath, dirnames, filenames) in os.walk(mypath):
