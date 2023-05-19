@@ -66,6 +66,8 @@ GRUB_GFXMODE=1920x1080
 GRUB_GFXPAYLOAD_LINUX=keep
 ```
 
+Eliminate screen teariing : ```nvidia-settings --assign CurrentMetaMode="nvidia-auto-select +0+0 { ForceFullCompositionPipeline = On }"```
+
 Usb mounting with ```usbmount```:
 * package created from https://github.com/rbrito/usbmount
 * ```for f in /media/usb*; do echo "$f"; ls "$f"; done```
